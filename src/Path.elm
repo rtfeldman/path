@@ -2,7 +2,7 @@ module Path exposing ((+/), Abs, Path, Rel, absolute, appendTo, hasInvalidCharac
 
 
 type Path a
-    = Path (List String)
+    = Path AbsOrRel (List String)
 
 
 type Rel
@@ -11,6 +11,13 @@ type Rel
 
 type Abs
     = Abs
+
+
+{-| Internal use only.
+-}
+type AbsOrRel
+    = AbsPath
+    | RelPath
 
 
 type ParsedPath
@@ -25,8 +32,8 @@ parse str =
 
 
 appendTo : Path a -> Path Rel -> Path a
-appendTo (Path firstSegments) (Path secondSegments) =
-    Path (firstSegments ++ secondSegments)
+appendTo (Path absOrRel firstSegments) (Path _ secondSegments) =
+    Path absOrRel (firstSegments ++ secondSegments)
 
 
 hasInvalidCharacters : Path a -> Bool
@@ -48,14 +55,34 @@ resolve path =
 
 absolute : Path Abs
 absolute =
-    Path []
+    Path AbsPath []
 
 
 relative : Path Rel
 relative =
-    Path []
+    Path RelPath []
 
 
 (+/) : Path a -> String -> Path a
-(+/) (Path first) str =
-    Path (first ++ [ str ])
+(+/) (Path absOrRel first) str =
+    Path absOrRel (first ++ [ str ])
+
+
+toString : Path a -> String
+toString (Path absOrRel segments) =
+    let
+        {- TODO: this definitely needs to accept an OS-specific separator char of some sort,
+           and possibly a root as well.
+        -}
+        separator =
+            "/"
+
+        str =
+            String.join separator segments
+    in
+    case absOrRel of
+        AbsPath ->
+            separator ++ str
+
+        RelPath ->
+            str
